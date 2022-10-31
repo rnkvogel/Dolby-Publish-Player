@@ -18,7 +18,10 @@ HTTPS://YOURWEBSITE.com/publisher/?streamId=AccountID/StreaName&token=THE_PUBLIS
 
 
 For playback on your site.
-HTTPS://YOURWEBSITE?streamId=accountId/streamName
+HTTPS://YOURWEBSITE/?streamId=accountId/streamName
+
+Audio Only
+HTTPS://YOURWEBSITE/audio.html?streamId=accountId/streamName
 
 
 
