@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title></title>
+<script>
+let params     = new URLSearchParams(document.location.search.substring(1));
+// SubscribingToken - placed here for ease of test	
+
+function startPublisher(){
+var accountId = document.getElementById("viewTxt").value;
+var streamName = document.getElementById("streamTxt").value;
+var publishToken = document.getElementById("token").value;
+ var url = "https://rnkvogel.github.io/Dolby-Publish-Player/publisher/?streamId=" +  accountId +"/"+ streamName + "&token=" + publishToken;
+ window.open(url);
+ }
+
+</script>
+
+<body>
+ <H1>Millicast 360 Video Player Demo</H1>
+ Please input our stream name and account id information. Secure token is not enabled in demo.
+<div id="form" class="account-data">
+<input id="tokenTxt" class="base-input" type="text" value="" placeholder="Publishing Token" />
+<input id="viewTxt" class="base-input" type="text" value="" placeholder="Account Id"/>
+<input id="streamTxt" class="base-input ml-10 mr-10" type="text" value="" placeholder="Stream Name"/>
+ </div>
+ 
+<div>
+<button id="startPublisher" class="btn-audio"  onClick="startPublisher()" type="button">Start Publisher</button>
+</div>
+
+</body>
+</html>
