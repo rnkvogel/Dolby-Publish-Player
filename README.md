@@ -13,9 +13,21 @@ Publishing Token
 You have plced the files on your site HTTPS site.
 Replace accountId, streamName and Publishing Token with the information provided from your Dolby.io streaming dashboard.
 
-For Publishing with your Dolby Realtime Streaming account information.
-HTTPS://YOURWEBSITE.com/publisher/?streamId=AccountID/StreaName&token=THE_PUBLISHING_TOKEN!!!!!!!!!!!!!!!!!!!!!
+DEMO
 
+You can test this player with your Millicast stream information here.
+
+https://rnkvogel.github.io/Dolby-Publisher-Player/
+
+Open player
+https://rnkvogel.github.io/Dolby-Publisher-Player/?streamId=accountId/StreamName
+Audio Player Demo
+
+https://rnkvogel.github.io/Dolby-Publisher-Player/?streamId=accountId/StreamName
+
+
+For Publishing with your Dolby Realtime Streaming account information.
+HTTPS://YOURWEBSITE.com/publisher/?streamId=AccountID/StreaName&token=THE_PUBLISHING_TOKEN
 
 For playback on your site.
 HTTPS://YOURWEBSITE/?streamId=accountId/streamName
