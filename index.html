@@ -2,6 +2,29 @@
 <html>
 <head>
 <title></title>
+  <style>
+html{
+  background-image: url('https://nerdits.com/images/dolby2.png');
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    -o-background-size: cover;
+    background-size: cover;}
+h1,h3{
+color: #ffffff
+}
+.btn-audio {
+  background-color: #04AA6D;
+  border: none;
+  color: white;
+  padding: 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+}
+</style>
+
 <script>
 let params     = new URLSearchParams(document.location.search.substring(1));
 // SubscribingToken - placed here for ease of test	
@@ -15,10 +38,10 @@ window.open(url);
  }
 
 </script>
-
+<head>
 <body>
  <H1>Dolby Realtime Publisher Player and Audio only</H1>
-Please input our stream name and account id information. Secure token is not enabled in demo.
+<h3>Please input our stream name and account id information. Secure token is not enabled in demo.</h3>
 <div id="form" class="account-data">
 <input id="tokenTxt" class="base-input" type="text" value="" placeholder="Publishing Token" />
 <input id="viewTxt" class="base-input" type="text" value="" placeholder="Account Id"/>
