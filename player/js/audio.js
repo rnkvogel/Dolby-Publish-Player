@@ -1,383 +1,367 @@
+let params = new URLSearchParams(document.location.search.substring(1));
+let id = params.get('streamId');
+let split = id.split('/');
+let accountId = split[0];
+let streamName = split[1];
+let subToken = params.get('token');// SubscribingToken - placed here for ease of testing, should come from secure location. (php/nodejs)
+console.log('Millicast Viewer Stream: ', streamName);
 
-const View = millicast.View
-//millicast.View = new millicast.View({events:["active, inactive", "vad", "layers"]});
-const Director = millicast.Director
-const Logger = millicast.Logger
-window.Logger = Logger
-Logger.setLevel(Logger.DEBUG);
+  //Millicast required info.
+  let url;// path to Millicast Server - Returned from API
+  let jwt;//authorization token - Returned from API
 
+  const apiPath  = 'https://director.millicast.com/api/director/subscribe';
+  const turnUrl  = 'https://turn.millicast.com/webrtc/_turn';
+  //Ice Servers:
+  let iceServers = [];
+    //show user count
+  let showUserCount = true;
 
-
-// Multiplexing Viewer
-//Create viewer
-
-
-
-function toggleMute(){
-  video.muted = !video.muted;
-  if (!video.muted){
+  function toggleMute(){
+  player.muted = !player.muted;
+  if (!player.muted){
   audioBtn.style.visibility = 'hidden';
-
+  //player.play();
   }
-}
+ }
 
-
-//Get our url
-const href = new URL(window.location.href);
-//Get or set Defaults
-const url = !!href.searchParams.get("url")
-  ? href.searchParams.get("url")
-  : "wss://turn.millicast.com/millisock";
-const streamName = !!href.searchParams.get("id")
-? href.searchParams.get("id")  : process.env.MILLICAST_STREAM_NAME;
-const streamAccountId = !!href.searchParams.get("ac")
- ? href.searchParams.get("ac") : process.env.MILLICAST_ACCOUNT_ID;
-const subToken = !!href.searchParams.get("token");
-// ? href.searchParams.get("token"); SubscribingToken - placed here for ease of testing, should come from secure location. (php/nodejs)
-
-
-
-let changeStream=streamName;
-let sourceId = "1";
-const pinnedSourceId = "1";
-//const streamId = streamName+"&sourceId=" + sourceId;
-const streamId = streamName;
-console.log (streamName, streamAccountId, streamId, sourceId);
-const options ={
-  sourceId: sourceId,
-  disableVideo: false,
-  disableAudio: false,
-  bandwidth: 0,
-  dtx: true,
-
-}
-
-/*
-if(connection.effectiveType >= '4g') {
-
- changeStream = changeStream + "_high";
-}
-if(connection.effectiveType === 'slow-2g') {
-
- changeStream = changeStream +"_low";
-}
-console.log(connection.effectiveType);
-*/
-/*
-switch(connection.type) {
-        case connection.CELL_3G:
-        connectionBand = 'Medium Bandwidth';
-        changeStream = changeStream;
-
-            
-        break;
-        case connection.CELL_2G:
-            connectionBand = 'Low Bandwidth';
-             changeStream = changeStream+"mobile";
-             break;
-        default:
-            connectionBand = 'High Bandwidth';
-              changeStream = changeStream + "_HD";           
+   function connect() {
+    reconn = false;
+    if (!url) {
+      showMsg('Authenticating...');
+      updateMillicastAuth()
+        .then(d => {
+          connect();
+        })
+        .catch(e => {
+          console.log('api error: ', e);
+        });
+      return;
     }
+    showMsg('Connecting...');
 
-console.log(changeStream);
-*/
-const disableVideo = href.searchParams.get("disableVideo") === "true";
-const disableAudio = href.searchParams.get("disableAudio") === "true";
-const muted =
-  href.searchParams.get("muted") === "true" ||
-  href.searchParams.get("muted") === null;
-const autoplay =
-  href.searchParams.get("autoplay") === "true" ||
-  href.searchParams.get("autoplay") === null;
-const autoReconnect =
-  href.searchParams.get("autoReconnect") === "true" ||
-  href.searchParams.get("autoReconnect") === null;
+    console.log('connecting to: ', url);
 
-//console.log(disableVideo, disableAudio, muted, autoplay, autoReconnect);
-const disableControls =
-  href.searchParams.get("disableControls") === "true" &&
-  href.searchParams.get("disableControls") !== null;
-const disableVolume =
-  (href.searchParams.get("disableVolume") === "true" &&
-    href.searchParams.get("disableVolume") !== null) ||
-  disableControls;
-const disablePlay =
-  (href.searchParams.get("disablePlay") === "true" &&
-    href.searchParams.get("disablePlay") !== null) ||
-  disableControls;
-const disableFull =
-  (href.searchParams.get("disableFull") === "true" &&
-    href.searchParams.get("disableFull") !== null) ||
-  disableControls;
-
-//console.log(disableVolume, disablePlay, disableFull);
-let playing = false;
-let fullBtn = document.querySelector("#fullBtn");
-let video = document.querySelector("audio");
-
-video.addEventListener('loadedmetadata', (event) => {
-  Logger.log("loadedmetadata",event);
-});
-// MillicastView object
-let millicastView = null
-
-const newViewer = () => {
-  const tokenGenerator = () => Director.getSubscriber(streamName, streamAccountId)
-  const millicastView = new View(streamName, tokenGenerator, null, autoReconnect)
-  
-  millicastView.on("broadcastEvent", (event) => {
-    if (!autoReconnect) return;
-  
-    let layers = event.data["layers"] !== null ? event.data["layers"] : {};
-    if (event.name === "layers" && Object.keys(layers).length <= 0) {
-    }
-  });
-  millicastView.on("track", (event) => {
-    addStream(event.streams[0]);
-  });
-
-  return millicastView
-}
-
-
-const togglePlay = () => {
-  if (video.paused) {
-    video.play()
-  } else {
-    video.pause();
-  }
-};
-
-const toggleFullscreen = () => {
-  let fullIcon = fullBtn.children[0];
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen();
-    fullIcon.classList.remove("fa-compress");
-    fullIcon.classList.add("fa-expand");
-  } else {
-    if (document.exitFullscreen) {
-      document.exitFullscreen();
-
-      fullIcon.classList.remove("fa-expand");
-      fullIcon.classList.add("fa-compress");
-    }
-  }
-};
-
-const addStream = (stream) => {
-  //Create new video element
-  playing = true;
-  const audio = document.querySelector("audio");
-
-  if (disableVideo) {
-    if (audio) audio.srcObject = stream;
-    if (video) video.parentNode.removeChild(video);
-    togglePlay();
-  } else {
-    //Set same id
-    video.id = stream.id;
-    //Set src stream
-    //console.log('addStream');
-    if (!muted) {
-      video.removeAttribute("muted");
-    }
-    if (!autoplay) {
-      video.autoplay = false;
-      playing = false;
-      video.removeAttribute("autoplay");
-    }
-
-    //If we already had a a stream
-    if (video.srcObject) {
-       //Create temporal video element and switch streams when we have valid data
-       const tmp = video.cloneNode(true);
-       //Override the muted attribute with current muted state
-       tmp.muted = video.muted;
-       //Set same volume
-       tmp.volume = video.volume;
-       //Set new stream
-       tmp.srcObject = stream;
-       //Replicate playback state
-       if (video.playing) {
-          try { tmp.play(); } catch (e) {}
-        } else if (video.paused) {
-          try{ tmp.paused(); } catch (e) {}
-       }
-       //Replace the video when media has started playing              
-       tmp.addEventListener('loadedmetadata', (event) => {
-         Logger.log("loadedmetadata tmp",event);
-          video.parentNode.replaceChild(tmp, video);
-          //Pause previous video to avoid duplicated audio until the old PC is closed
-          try { video.pause(); } catch (e) {}
-          //If it was in full screen
-	  if (document.fullscreenElement == video) {
-            try { document.exitFullscreen(); tmp.requestFullscreen(); } catch(e) {}
-	  }
-          //If it was in picture in picture mode
-          if (document.pictureInPictureElement == video) {
-            try { document.exitPictureInPicture(); tmp.requestPictureInPicture(); } catch(e) {}
-          }
-          //Replace js objects too
-          video = tmp;
-       });
-    } else {
-       video.srcObject = stream;
-    }
-    
-    if (audio) audio.parentNode.removeChild(audio);
-  }
-};
-
-let isSubscribed = false
-
-const close = () => {
-  video.srcObject = null;
-  playing = false;
-  millicastView?.millicastSignaling?.close();
-  millicastView = null
-  isSubscribed = false
-  return Promise.resolve({});
-};
-
-const subscribe = async () => {
-  if (millicastView?.isActive() || isSubscribed) {
-    return
-  }
-
-  try {
-    isSubscribed = true
-    const options = {
-      disableVideo: disableVideo,
-      disableAudio: disableAudio,
-      absCaptureTime: true,
+    let conf = {
+      iceServers:    iceServers,
+      // sdpSemantics : "unified-plan",
+      rtcpMuxPolicy: "require",
+      bundlePolicy:  "max-bundle"
     };
-    window.millicastView = millicastView = newViewer()
-    await millicastView.connect(options);
-  } catch (error) {
-    if (!autoReconnect) return;
-    millicastView.reconnect()
-  }
-};
-
-document.addEventListener("DOMContentLoaded", () => {
-  let int;
-  let lastclientX, lastclientY;
-
-  const startInt = (evt) => {
-    if (int) clearInterval(int);
-    int = setInterval(() => {
-      let clientX = evt.clientX;
-      let clientY = evt.clientY;
-      if (clientX === lastclientX && clientY === lastclientY) {
-        clearInterval(int);
-      } else {
-        lastclientX = clientX;
-        lastclientY = clientY;
+    pc     = new RTCPeerConnection(conf);
+    pc.ontrack = function (event) {
+      console.debug("pc::onAddStream", event);
+      //Play it
+      let vidWin = document.getElementsByTagName('audio')[0];
+      if (vidWin) {
+        vidWin.srcObject = event.streams[0];
+        vidWin.controls  = true;
       }
-    }, 1000);
-  };
+    };
+    pc.onconnectionstatechange = function(e) {
+      console.log('PC state:',pc.connectionState);
+      switch(pc.connectionState) {
+        case "connected":
 
-  if (fullBtn) fullBtn.onclick = toggleFullscreen;
+          if(!ws_cnt && showUserCount){
+            //show user count.
+            let el = document.getElementById('userCntView');
+            if(window.getComputedStyle(el, null).display === 'none'){
+              el.style.display = 'unset';
+            }
 
-  video.onmousemove = (evt) => {
-    startInt(evt);
-  };
-  video.addEventListener(
-    "touchstart",
-    (evt) => {
-      startInt(evt);
-    },
-    false
-  );
+            startUserCount(accountId, streamName, document.getElementById('count'));
+     }
 
-  int = setInterval(() => {
-    clearInterval(int);
-  }, 2000);
-  subscribe();
-});
+          break;
+        case "disconnected":
+        case "failed":
+          break;
+        case "closed":
+          console.log('WS onclose ',reconn);
+          if(reconn){
+            stopUserCount();
+            pc = null;
+            if(!ws){
+              connect();
+            }
+          }
+          break;
+      }
+    }
 
-const receiverApplicationId = 'B5B8307B'
+    console.log('connecting to: ', url + '?token=' + jwt);//token
+    //connect with Websockets for handshake to media server.
+    ws    = new WebSocket(url + '?token=' + jwt);
+    ws.onopen = function () {
+      console.log('ws::onopen');
+      let offer = pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
+        .then(desc => {
+          console.log('createOffer Success!');
+          //support for stereo
+          desc.sdp = desc.sdp.replace("useinbandfec=1", "useinbandfec=1; stereo=1");
+          //try for multiopus (surround sound) support
+          try {
+            desc.sdp = setMultiopus(desc);
+          } catch(e){
+            console.log('create offer stereo',offer);
+          }
+         //set local description and send offer to media server via ws.
+          pc.setLocalDescription(desc)
+            .then(() => {
+              console.log('setLocalDescription Success!');
+              //set required information for media server.
+              let data    = {
+                streamId: accountId,//Millicast accountId
+                sdp:      desc.sdp
+              }
+              //create payload
+              let payload = {
+                type:    "cmd",
+                transId: 0,
+                name:    'view',
+                data:    data
+              }
+              console.log('send ', payload);
+              ws.send(JSON.stringify(payload));
+            })
+            .catch(e => {
+              console.log('setLocalDescription failed: ', e);
+              showMsg(e.status+': '+e.data.message);
+            })
+        }).catch(e => {
+          console.log('createOffer Failed: ', e)
+          showMsg(e.status+': '+e.data.message);
+        });
+    }
+    ws.onclose = function () {
+      console.log('WS onclose ',reconn);
+      if(reconn){
+        ws = null;
+        if(!pc){
+          setTimeout(connect(),700);
+        } else {
+          console.log('close PC ',pc);
+          pc.close();
+          pc = null;
+          setTimeout(connect(),700);
+        }
+      }
+    }
+    ws.addEventListener('message', evt => {
+      console.log('ws::message', evt);
+      let msg = JSON.parse(evt.data);
+      switch (msg.type) {
+        //Handle counter response coming from the Media Server.
+        case "response":
+          let data   = msg.data;
+          let remotesdp = data.sdp;
 
-window['__onGCastApiAvailable'] = function(isAvailable) {
-  if (!isAvailable) {
-    return false
+          /* handle older versions of Safari */
+          if (remotesdp && remotesdp.indexOf('\na=extmap-allow-mixed') !== -1) {
+            remotesdp = remotesdp.split('\n').filter(function (line) {
+              return line.trim() !== 'a=extmap-allow-mixed';
+            }).join('\n');
+            console.log('trimed a=extmap-allow-mixed - sdp \n',remotesdp);
+          }
+          let answer = new RTCSessionDescription({
+                                                   type: 'answer',
+                                                   sdp:  remotesdp
+                                                 });
+
+          pc.setRemoteDescription(answer)
+            .then(d => {
+              console.log('setRemoteDescription  Success! ');
+              showMsg('');
+            })
+            .catch(e => {
+              console.log('setRemoteDescription failed: ', e);
+              showMsg(e.status+': '+e.data.message);
+            });
+          break;
+        case "event":
+          if(msg.name === 'inactive'){
+            console.log('Video Inactive');
+            showMsg('Stream inactive, please stand by...');
+          } else if(msg.name === 'active'){
+            console.log('Video Active');
+            showMsg('');//clear message
+          } else if( msg.name === 'stopped'){
+            console.log('Video Stopped');
+            showMsg('Stream is not available.');
+            //todo - reset video object, re-instate handshake.
+            let vidWin = document.getElementsByTagName('video')[0];
+            if (vidWin) {
+              vidWin.pause();
+              // vidWin.removeAttribute('src'); // empty source
+              vidWin.src = '';
+              vidWin.load();
+              // connect();
+              doReconnect();
+            }
+          }
+          break;
+      }
+    })
+
   }
-  
-  const stateChanged = cast.framework.CastContextEventType.CAST_STATE_CHANGED
-  const castContext = cast.framework.CastContext.getInstance()
-  castContext.setOptions({
-    autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED,
-    receiverApplicationId
-  })
+function doReconnect(){
+    reconn = true;
+    url = null;
+    ws.close();
+    //pc.close();
+    // setTimeout(connect(),700);
+  }
 
-  castContext.addEventListener(stateChanged, ({castState}) => {
-    if (castState === cast.framework.CastState.NOT_CONNECTED) {
-      subscribe()
+  // Gets ice servers.
+  function getICEServers() {
+    return new Promise((resolve, reject) => {
+      let xhr                = new XMLHttpRequest();
+      xhr.onreadystatechange = function (evt) {
+        if (xhr.readyState == 4) {
+          let res = JSON.parse(xhr.responseText), a;
+          console.log('getICEServers::status:', xhr.status, ' response: ', xhr.responseText);
+          switch (xhr.status) {
+            case 200:
+              //returns array.
+              if (res.s !== 'ok') {
+                a = [];
+                //failed to get ice servers, resolve anyway to connect w/ out.
+                resolve(a);
+                return
+              }
+              let list = res.v.iceServers;
+              a        = [];
+              //call returns old format, this updates URL to URLS in credentials path.
+              list.forEach(cred => {
+                let v = cred.url;
+                if (!!v) {
+                  cred.urls = v;
+                  delete cred.url;
+                }
+                a.push(cred);
+                //console.log('cred:',cred);
+              });
+              console.log('ice: ', a);
+              resolve(a);
+              break;
+            default:
+              a = [];
+              //reject(xhr.responseText);
+              //failed to get ice servers, resolve anyway to connect w/ out.
+              resolve(a);
+              break;
+          }
+        }
+      }
+      xhr.open("PUT", turnUrl, true);
+      xhr.send();
+    })
+  }
+
+  // gets server path and auth token.
+  function updateMillicastAuth() {
+    console.log('updateMillicastAuth at: ' + apiPath + ' for:', streamName, ' accountId:', accountId);
+    return new Promise((resolve, reject) => {
+      let xhr                = new XMLHttpRequest();
+      xhr.onreadystatechange = function (evt) {
+        if (xhr.readyState == 4) {
+          let res = JSON.parse(xhr.responseText);
+          console.log('res: ', res);
+          console.log('status:', xhr.status, ' response: ', xhr.responseText);
+          switch (xhr.status) {
+            case 200:
+              if( res.status !== 'fail' ){
+                let d = res.data;
+                jwt   = d.jwt;
+                url   = d.urls[0];
+                resolve(d);
+              }
+              break;
+            default:
+              reject(res);
+          }
+        }
+      }
+      xhr.open("POST", apiPath, true);
+      //apply subscribe token if available.
+      if (subToken) {
+        xhr.setRequestHeader('Authorization', `Bearer ${subToken}`);
+        console.log('sub token applied');
+      }
+      xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.send(JSON.stringify({streamAccountId: accountId, streamName: streamName, unauthorizedSubscribe: true}));
+    });
+  }
+
+  //support for multiopus
+  function setMultiopus(offer){
+    ///// currently chrome only
+    let isChromium = window.chrome;
+    let winNav = window.navigator;
+    let vendorName = winNav.vendor;
+    let agent = winNav.userAgent.toLowerCase();
+    let isOpera = typeof window.opr !== "undefined";
+    let isIEedge = agent.indexOf("edge") > -1;
+    let isEdgium = agent.indexOf("edg") > -1;
+    let isIOSChrome = agent.match("crios");
+
+    let isChrome = false;
+    if (isIOSChrome) {
+    } else if( isChromium !== null && typeof isChromium !== "undefined" &&
+                vendorName === "Google Inc." && isOpera === false &&
+                isIEedge === false && isEdgium === false) {
+      // is Google Chrome
+      isChrome = true;
     }
 
-    if (castState === cast.framework.CastState.CONNECTED) {
-      const castSession = castContext.getCurrentSession()
-      const mediaInfo = new chrome.cast.media.MediaInfo(streamName, '')
-      mediaInfo.customData = { streamName, streamAccountId }
-      mediaInfo.streamType = chrome.cast.media.StreamType.LIVE
-
-      const loadRequest = new chrome.cast.media.LoadRequest(mediaInfo)
-      castSession.loadMedia(loadRequest).then(close)
+    console.log('isChrome: ',isChrome);
+    if(isChrome){
+      // console.log('agent: ',navigator.userAgent);
+      //Find the audio m-line
+      const res = /m=audio 9 UDP\/TLS\/RTP\/SAVPF (.*)\r\n/.exec(offer.sdp);
+      //Get audio line
+      const audio = res[0];
+      //Get free payload number for multiopus
+      const pt  = Math.max(...res[1].split(" ").map( Number )) + 1;
+      //Add multiopus
+      const multiopus = audio.replace("\r\n"," ") + pt + "\r\n" +
+        "a=rtpmap:" + pt + " multiopus/48000/6\r\n" +
+        "a=fmtp:" + pt + " channel_mapping=0,4,1,2,3,5;coupled_streams=2;minptime=10;num_streams=4;useinbandfec=1\r\n";
+      //Change sdp
+      offer.sdp = offer.sdp.replace(audio,multiopus);
+      console.log('create multi-opus offer',offer);
+    } else {
+      console.log('no multi-opus support');
     }
-  })
-}
-const tokenGenerator = () => Director.getSubscriber(streamName, streamAccountId)
-const viewer = new View(streamId, tokenGenerator);
-console.log(options);
-viewer.connect({
-    events: ["active", "inactive", "vad", "layers"],
-    pinnedSourceId,
-    multiplexedAudioTracks: 5,
-    excludedSourceIds: [sourceId],
-    disableVideo,
-    dtx: true,
-});
-const data = viewer.Data
-/*
-const millicastView = new View(streamName, tokenGenerator, video)
-millicastView.connect({
-    events: ["active", "inactive", "vad", "layers"]
-})
+    return offer.sdp;
+  }
 
-millicastView.on("broadcastEvent", (event) =>
-{
-    //Get event name and data
-    const { name, data } = event;
+  function showMsg(s){
+ //   vidMsg.innerText = s;
+  }
 
-    switch (name)
-    {
-        case "active":
-            //A source has been started on the steam
-            break;
-        case "inactive":
-            //A source has been stopped on the steam
-            break;
-        case "vad":
-            //A new source was multiplexed over the vad tracks
-            break;
-        case "layers":
-            //Updated layer information for each simulcast/svc video track
-            break;
+  function ready() {
+    vidMsg = document.getElementById('msgOverlay');
+    let v = document.getElementsByTagName('audio')[0];
+    if (v) {
+      v.addEventListener("click", evt => {
+        v.play();
+      });
     }
+    //connect();
+    // get a list of Xirsys ice servers.
+    getICEServers()
+      .then(list => {
+        iceServers = list;
+        //ready to connect.
+        connect();
+      });
+  }
 
-});
-viewer.project(data.sourceId,[
-    {
-        trackId: "audio0",
-        mediaId: audioTransceiver.mid
-    },
-        {
-        trackId: "video0",
-        mediaId: videoTransceiver.mid
-    }
-]);
-*/
-console.log(data);
-//sources.add(data.sourceId);
-//viewer.project(data.sourceId,[{trackId:"video",mediaId.viewer.getRTCPeerConnection().getTransceivers()[0].mid}]);//per Sergio
+  if (document.attachEvent ? document.readyState === "complete" : document.readyState !== "loading") {
+    ready();
+  } else {
+    document.addEventListener('DOMContentLoaded', ready);
+  }
+
