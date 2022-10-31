@@ -20,11 +20,11 @@ You can test this player with your Millicast stream information here.
 https://rnkvogel.github.io/Dolby-Publish-Player/
 
 Open player
-https://rnkvogel.github.io/Dolby-Publisher-Player/player/?streamId=accountId/StreamName
+https://rnkvogel.github.io/Dolby-Publish-Player/player/?streamId=accountId/StreamName
 
 Audio Player Demo
 
-https://rnkvogel.github.io/Dolby-Publisher-Player/player/audio.html?streamId=accountId/StreamName
+https://rnkvogel.github.io/Dolby-Publish-Player/player/audio.html?streamId=accountId/StreamName
 
 
 For Publishing with your Dolby Realtime Streaming account information.
