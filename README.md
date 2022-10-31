@@ -17,7 +17,7 @@ DEMO
 
 You can test this player with your Millicast stream information here.
 
-https://rnkvogel.github.io/Dolby-Publisher-Player/
+https://rnkvogel.github.io/Dolby-Publish-Player/
 
 Open player
 https://rnkvogel.github.io/Dolby-Publisher-Player/?streamId=accountId/StreamName
