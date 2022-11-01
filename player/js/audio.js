@@ -33,8 +33,7 @@
         })
         .catch(e => {
           console.log('api error: ', e);
-   //       showMsg(e.status+': '+e.data.message);
-          // alert("Error: The API encountered an error ", e);
+  
         });
       return;
     }
@@ -217,8 +216,7 @@
     reconn = true;
     url = null;
     ws.close();
-    //pc.close();
-    // setTimeout(connect(),700);
+
   }
 
   // Gets ice servers.
