@@ -1,7 +1,9 @@
- let params = new URLSearchParams(document.location.search.substring(1));
- let accountId  = params.get('accountId');
- let streamName = params.get('streamName');
- let subToken = params.get('token');// SubscribingToken - placed here for ease of testing, should come from secure location. (php/nodejs)
+  let params = new URLSearchParams(document.location.search.substring(1));
+ let id = params.get('streamId');
+let split = id.split('/');
+let accountId = split[0];
+let streamName = split[1];
+  let subToken = params.get('token');// SubscribingToken - placed here for ease of testing, should come from secure location. (php/nodejs)
  console.log('Millicast Viewer Stream: ', streamName);
 
   //Millicast required info.
@@ -12,7 +14,7 @@
   const turnUrl  = 'https://turn.millicast.com/webrtc/_turn';
   //Ice Servers:
   let iceServers = [];
-    //show user count
+  //show user count
   let showUserCount = true;
 
   function toggleMute(){
@@ -33,7 +35,6 @@
         })
         .catch(e => {
           console.log('api error: ', e);
-  
         });
       return;
     }
@@ -216,7 +217,6 @@
     reconn = true;
     url = null;
     ws.close();
-
   }
 
   // Gets ice servers.
@@ -370,6 +370,9 @@
   } else {
     document.addEventListener('DOMContentLoaded', ready);
   }
+
+
+
 
 
 
